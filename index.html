@@ -82,6 +82,7 @@
             transform-style: preserve-3d;
             position: relative;
             overflow: hidden;
+            cursor: pointer;
         }
         
         .current-number::before {
@@ -105,8 +106,31 @@
             transform: translateY(-5px) rotateX(10deg);
         }
         
-        .current-number.shuffling::before {
-            animation: shine 1.5s infinite;
+        .fullscreen-number {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            font-size: 10rem;
+            font-weight: 700;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            opacity: 0;
+            visibility: hidden;
+            transform: scale(0.8);
+        }
+        
+        .fullscreen-number.show {
+            opacity: 1;
+            visibility: visible;
+            transform: scale(1);
         }
         
         @keyframes pulse {
@@ -263,6 +287,10 @@
                 font-size: 4rem;
             }
             
+            .fullscreen-number {
+                font-size: 8rem;
+            }
+            
             .btn {
                 padding: 12px 24px;
             }
@@ -310,22 +338,47 @@
         </div>
     </div>
 
+    <div class="fullscreen-number" id="fullscreenNumber"></div>
+
     <script>
         const generateBtn = document.getElementById('generateBtn');
         const newGameBtn = document.getElementById('newGameBtn');
         const currentNumber = document.getElementById('currentNumber');
         const numbersList = document.getElementById('numbersList');
         const counter = document.getElementById('counter');
+        const fullscreenNumber = document.getElementById('fullscreenNumber');
         
         let calledNumbers = [];
         let availableNumbers = Array.from({length: 99}, (_, i) => i + 1);
         let isShuffling = false;
         let shuffleInterval;
+        let lastGeneratedNumber = null;
         
         // Update counter display
         function updateCounter() {
             counter.innerHTML = `Numbers left: <span>${availableNumbers.length}</span>`;
         }
+        
+        // Show fullscreen number
+        function showFullscreenNumber(number) {
+            fullscreenNumber.textContent = number;
+            fullscreenNumber.classList.add('show');
+        }
+        
+        // Hide fullscreen number
+        function hideFullscreenNumber() {
+            fullscreenNumber.classList.remove('show');
+        }
+        
+        // Click handler for fullscreen number
+        fullscreenNumber.addEventListener('click', hideFullscreenNumber);
+        
+        // Click handler for current number
+        currentNumber.addEventListener('click', () => {
+            if (lastGeneratedNumber && !isShuffling) {
+                showFullscreenNumber(lastGeneratedNumber);
+            }
+        });
         
         // Shuffle animation
         function startShuffle() {
@@ -375,12 +428,18 @@
             
             // Add to called numbers
             calledNumbers.push(number);
+            lastGeneratedNumber = number;
             
             // Display the number with celebration effect
             currentNumber.textContent = number;
             currentNumber.classList.remove('shuffling');
             currentNumber.style.transform = 'scale(1.1)';
             currentNumber.style.boxShadow = '0 0 30px rgba(99, 102, 241, 0.8)';
+            
+            // Show fullscreen number automatically
+            setTimeout(() => {
+                showFullscreenNumber(number);
+            }, 500);
             
             setTimeout(() => {
                 currentNumber.style.transform = '';
@@ -422,6 +481,8 @@
             updateCounter();
             generateBtn.disabled = false;
             isShuffling = false;
+            lastGeneratedNumber = null;
+            hideFullscreenNumber();
         });
         
         // Update the numbers table
