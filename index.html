@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neon Bingo Generator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --secondary: #f8fafc;
+            --text: #1e293b;
+            --text-light: #64748b;
+            --highlight: #f43f5e;
+            --highlight-dark: #e11d48;
+            --bg: #f1f5f9;
+            --card-bg: #ffffff;
+            --border: #e2e8f0;
+            --glow: 0 0 15px rgba(99, 102, 241, 0.5);
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+        
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .container {
+            max-width: 480px;
+            width: 100%;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        h1 {
+            color: var(--text);
+            margin-bottom: 24px;
+            font-weight: 700;
+            text-align: center;
+            font-size: 2rem;
+            letter-spacing: -0.5px;
+            background: linear-gradient(90deg, var(--primary), var(--highlight));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        .current-number-container {
+            position: relative;
+            margin: 24px 0;
+            perspective: 1000px;
+        }
+        
+        .current-number {
+            width: 160px;
+            height: 160px;
+            border-radius: 24px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 4.5rem;
+            font-weight: 700;
+            margin: 0 auto;
+            box-shadow: var(--glow), 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            transform-style: preserve-3d;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .current-number::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(
+                to bottom right,
+                rgba(255, 255, 255, 0.3),
+                rgba(255, 255, 255, 0)
+            );
+            transform: rotate(30deg);
+            transition: all 0.4s ease;
+        }
+        
+        .current-number.shuffling {
+            animation: pulse 0.8s infinite alternate, float 3s ease-in-out infinite;
+            transform: translateY(-5px) rotateX(10deg);
+        }
+        
+        .current-number.shuffling::before {
+            animation: shine 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { box-shadow: var(--glow), 0 20px 25px -5px rgba(0, 0, 0, 0.1); }
+            100% { box-shadow: 0 0 25px rgba(99, 102, 241, 0.7), 0 25px 50px -12px rgba(99, 102, 241, 0.25); }
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(-5px) rotateX(10deg); }
+            50% { transform: translateY(5px) rotateX(10deg); }
+        }
+        
+        @keyframes shine {
+            0% { transform: translateX(-100%) rotate(30deg); }
+            100% { transform: translateX(100%) rotate(30deg); }
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            border: none;
+            padding: 14px 28px;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin: 8px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            position: relative;
+            overflow: hidden;
+            z-index: 1;
+        }
+        
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            z-index: -1;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .btn:hover::before {
+            opacity: 1;
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+        
+        .btn-new {
+            background: linear-gradient(135deg, var(--highlight), var(--highlight-dark));
+        }
+        
+        .btn-new::before {
+            background: linear-gradient(135deg, var(--highlight-dark), var(--highlight));
+        }
+        
+        .btn:disabled {
+            background: #cbd5e1;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .btn:disabled::before {
+            display: none;
+        }
+        
+        .btn-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-bottom: 24px;
+        }
+        
+        .card {
+            width: 100%;
+            border-radius: 16px;
+            margin-top: 24px;
+            background-color: var(--card-bg);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+        
+        .card-header {
+            padding: 16px 24px;
+            background-color: var(--secondary);
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .card-header h2 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text);
+        }
+        
+        .numbers-grid {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+        
+        .numbers-grid th {
+            background-color: var(--secondary);
+            color: var(--text-light);
+            padding: 12px 16px;
+            text-align: center;
+            font-weight: 600;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .numbers-grid td {
+            padding: 14px 16px;
+            text-align: center;
+            font-weight: 500;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .numbers-grid tr:last-child td {
+            border-bottom: none;
+        }
+        
+        .counter {
+            margin: 16px 0;
+            font-size: 0.95rem;
+            color: var(--text-light);
+            text-align: center;
+            font-weight: 500;
+        }
+        
+        .counter span {
+            font-weight: 600;
+            color: var(--primary);
+        }
+        
+        @media (max-width: 480px) {
+            .current-number {
+                width: 140px;
+                height: 140px;
+                font-size: 4rem;
+            }
+            
+            .btn {
+                padding: 12px 24px;
+            }
+            
+            .card-header {
+                padding: 14px 20px;
+            }
+            
+            .numbers-grid td {
+                padding: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Bingo Number Generator</h1>
+        
+        <div class="current-number-container">
+            <div class="current-number" id="currentNumber">--</div>
+        </div>
+        
+        <div class="counter">Numbers left: <span id="counter">99</span></div>
+        
+        <div class="btn-container">
+            <button class="btn" id="generateBtn">Generate Number</button>
+            <button class="btn btn-new" id="newGameBtn">New Game</button>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <h2>Called Numbers</h2>
+            </div>
+            <table class="numbers-grid" id="numbersTable">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Number</th>
+                    </tr>
+                </thead>
+                <tbody id="numbersList">
+                    <!-- Numbers will be added here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const generateBtn = document.getElementById('generateBtn');
+        const newGameBtn = document.getElementById('newGameBtn');
+        const currentNumber = document.getElementById('currentNumber');
+        const numbersList = document.getElementById('numbersList');
+        const counter = document.getElementById('counter');
+        
+        let calledNumbers = [];
+        let availableNumbers = Array.from({length: 99}, (_, i) => i + 1);
+        let isShuffling = false;
+        let shuffleInterval;
+        
+        // Update counter display
+        function updateCounter() {
+            counter.innerHTML = `Numbers left: <span>${availableNumbers.length}</span>`;
+        }
+        
+        // Shuffle animation
+        function startShuffle() {
+            isShuffling = true;
+            currentNumber.classList.add('shuffling');
+            generateBtn.disabled = true;
+            
+            let shuffleCount = 0;
+            const totalShuffles = 20 + Math.floor(Math.random() * 15); // 20-34 shuffles
+            
+            // Initial fast shuffle
+            shuffleInterval = setInterval(() => {
+                const randomIndex = Math.floor(Math.random() * availableNumbers.length);
+                const tempNumber = availableNumbers[randomIndex];
+                currentNumber.textContent = tempNumber;
+                
+                shuffleCount++;
+                
+                // Slow down as we approach the final number
+                if (shuffleCount > totalShuffles * 0.7) {
+                    clearInterval(shuffleInterval);
+                    shuffleInterval = setInterval(() => {
+                        const randomIndex = Math.floor(Math.random() * availableNumbers.length);
+                        const tempNumber = availableNumbers[randomIndex];
+                        currentNumber.textContent = tempNumber;
+                        
+                        shuffleCount++;
+                        if (shuffleCount >= totalShuffles) {
+                            clearInterval(shuffleInterval);
+                            finishShuffle();
+                        }
+                    }, 200);
+                } else if (shuffleCount >= totalShuffles) {
+                    clearInterval(shuffleInterval);
+                    finishShuffle();
+                }
+            }, 80);
+        }
+        
+        // Finish shuffle and reveal number
+        function finishShuffle() {
+            const randomIndex = Math.floor(Math.random() * availableNumbers.length);
+            const number = availableNumbers[randomIndex];
+            
+            // Remove the number from available numbers
+            availableNumbers.splice(randomIndex, 1);
+            
+            // Add to called numbers
+            calledNumbers.push(number);
+            
+            // Display the number with celebration effect
+            currentNumber.textContent = number;
+            currentNumber.classList.remove('shuffling');
+            currentNumber.style.transform = 'scale(1.1)';
+            currentNumber.style.boxShadow = '0 0 30px rgba(99, 102, 241, 0.8)';
+            
+            setTimeout(() => {
+                currentNumber.style.transform = '';
+                currentNumber.style.boxShadow = 'var(--glow), 0 20px 25px -5px rgba(0, 0, 0, 0.1)';
+            }, 500);
+            
+            // Update the table and counter
+            updateNumbersTable();
+            updateCounter();
+            
+            // Re-enable button after short delay
+            setTimeout(() => {
+                isShuffling = false;
+                generateBtn.disabled = false;
+                
+                if (availableNumbers.length === 0) {
+                    currentNumber.textContent = "🎉";
+                    currentNumber.style.fontSize = '5rem';
+                    generateBtn.disabled = true;
+                }
+            }, 300);
+        }
+        
+        // Generate random number with shuffle effect
+        generateBtn.addEventListener('click', () => {
+            if (isShuffling || availableNumbers.length === 0) return;
+            startShuffle();
+        });
+        
+        // New game
+        newGameBtn.addEventListener('click', () => {
+            clearInterval(shuffleInterval);
+            calledNumbers = [];
+            availableNumbers = Array.from({length: 99}, (_, i) => i + 1);
+            currentNumber.textContent = "--";
+            currentNumber.classList.remove('shuffling');
+            currentNumber.style.fontSize = '';
+            numbersList.innerHTML = '';
+            updateCounter();
+            generateBtn.disabled = false;
+            isShuffling = false;
+        });
+        
+        // Update the numbers table
+        function updateNumbersTable() {
+            numbersList.innerHTML = '';
+            
+            calledNumbers.forEach((number, index) => {
+                const row = document.createElement('tr');
+                
+                const indexCell = document.createElement('td');
+                indexCell.textContent = index + 1;
+                
+                const numberCell = document.createElement('td');
+                numberCell.textContent = number;
+                
+                row.appendChild(indexCell);
+                row.appendChild(numberCell);
+                numbersList.appendChild(row);
+            });
+        }
+        
+        // Initialize counter
+        updateCounter();
+    </script>
+</body>
+</html>
