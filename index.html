@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Neon Bingo Generator</title>
+    <title>Bingo Number Generator</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -83,6 +83,7 @@
             position: relative;
             overflow: hidden;
             cursor: pointer;
+            will-change: transform, box-shadow;
         }
         
         .current-number::before {
@@ -125,6 +126,7 @@
             opacity: 0;
             visibility: hidden;
             transform: scale(0.8);
+            will-change: transform, opacity;
         }
         
         .fullscreen-number.show {
@@ -340,6 +342,11 @@
 
     <div class="fullscreen-number" id="fullscreenNumber"></div>
 
+    <!-- Audio elements for sound effects -->
+    <audio id="shuffleSound" src="https://assets.mixkit.co/sfx/preview/mixkit-slot-machine-spin-1930.mp3" preload="auto"></audio>
+    <audio id="revealSound" src="https://assets.mixkit.co/sfx/preview/mixkit-winning-chimes-2015.mp3" preload="auto"></audio>
+    <audio id="clickSound" src="https://assets.mixkit.co/sfx/preview/mixkit-modern-click-box-check-1120.mp3" preload="auto"></audio>
+
     <script>
         const generateBtn = document.getElementById('generateBtn');
         const newGameBtn = document.getElementById('newGameBtn');
@@ -347,6 +354,11 @@
         const numbersList = document.getElementById('numbersList');
         const counter = document.getElementById('counter');
         const fullscreenNumber = document.getElementById('fullscreenNumber');
+        
+        // Audio elements
+        const shuffleSound = document.getElementById('shuffleSound');
+        const revealSound = document.getElementById('revealSound');
+        const clickSound = document.getElementById('clickSound');
         
         let calledNumbers = [];
         let availableNumbers = Array.from({length: 99}, (_, i) => i + 1);
@@ -359,15 +371,24 @@
             counter.innerHTML = `Numbers left: <span>${availableNumbers.length}</span>`;
         }
         
+        // Play sound with volume adjustment
+        function playSound(sound, volume = 0.5) {
+            sound.currentTime = 0;
+            sound.volume = volume;
+            sound.play().catch(e => console.log("Audio play prevented:", e));
+        }
+        
         // Show fullscreen number
         function showFullscreenNumber(number) {
             fullscreenNumber.textContent = number;
             fullscreenNumber.classList.add('show');
+            playSound(clickSound, 0.3);
         }
         
         // Hide fullscreen number
         function hideFullscreenNumber() {
             fullscreenNumber.classList.remove('show');
+            playSound(clickSound, 0.2);
         }
         
         // Click handler for fullscreen number
@@ -380,46 +401,78 @@
             }
         });
         
-        // Shuffle animation
+        // Improved shuffle animation with easing
         function startShuffle() {
             isShuffling = true;
             currentNumber.classList.add('shuffling');
             generateBtn.disabled = true;
             
-            let shuffleCount = 0;
-            const totalShuffles = 20 + Math.floor(Math.random() * 15); // 20-34 shuffles
+            // Start shuffle sound loop
+            playSound(shuffleSound, 0.4);
+            shuffleSound.loop = true;
             
-            // Initial fast shuffle
-            shuffleInterval = setInterval(() => {
+            let shuffleCount = 0;
+            const totalShuffles = 25 + Math.floor(Math.random() * 15); // 25-39 shuffles
+            
+            // Initial fast shuffle with easing
+            const initialShuffle = () => {
                 const randomIndex = Math.floor(Math.random() * availableNumbers.length);
                 const tempNumber = availableNumbers[randomIndex];
                 currentNumber.textContent = tempNumber;
                 
                 shuffleCount++;
                 
-                // Slow down as we approach the final number
-                if (shuffleCount > totalShuffles * 0.7) {
+                // Gradually slow down
+                if (shuffleCount > totalShuffles * 0.6) {
                     clearInterval(shuffleInterval);
-                    shuffleInterval = setInterval(() => {
-                        const randomIndex = Math.floor(Math.random() * availableNumbers.length);
-                        const tempNumber = availableNumbers[randomIndex];
-                        currentNumber.textContent = tempNumber;
-                        
-                        shuffleCount++;
-                        if (shuffleCount >= totalShuffles) {
-                            clearInterval(shuffleInterval);
-                            finishShuffle();
-                        }
-                    }, 200);
+                    shuffleInterval = setInterval(midShuffle, 150);
                 } else if (shuffleCount >= totalShuffles) {
                     clearInterval(shuffleInterval);
                     finishShuffle();
                 }
-            }, 80);
+            };
+            
+            // Middle speed shuffle
+            const midShuffle = () => {
+                const randomIndex = Math.floor(Math.random() * availableNumbers.length);
+                const tempNumber = availableNumbers[randomIndex];
+                currentNumber.textContent = tempNumber;
+                
+                shuffleCount++;
+                
+                // Slow down further for final numbers
+                if (shuffleCount > totalShuffles * 0.85) {
+                    clearInterval(shuffleInterval);
+                    shuffleInterval = setInterval(finalShuffle, 250);
+                } else if (shuffleCount >= totalShuffles) {
+                    clearInterval(shuffleInterval);
+                    finishShuffle();
+                }
+            };
+            
+            // Final slow shuffle
+            const finalShuffle = () => {
+                const randomIndex = Math.floor(Math.random() * availableNumbers.length);
+                const tempNumber = availableNumbers[randomIndex];
+                currentNumber.textContent = tempNumber;
+                
+                shuffleCount++;
+                if (shuffleCount >= totalShuffles) {
+                    clearInterval(shuffleInterval);
+                    finishShuffle();
+                }
+            };
+            
+            // Start with fast shuffling
+            shuffleInterval = setInterval(initialShuffle, 80);
         }
         
         // Finish shuffle and reveal number
         function finishShuffle() {
+            // Stop shuffle sound
+            shuffleSound.pause();
+            shuffleSound.loop = false;
+            
             const randomIndex = Math.floor(Math.random() * availableNumbers.length);
             const number = availableNumbers[randomIndex];
             
@@ -430,16 +483,19 @@
             calledNumbers.push(number);
             lastGeneratedNumber = number;
             
+            // Play reveal sound
+            playSound(revealSound, 0.5);
+            
             // Display the number with celebration effect
             currentNumber.textContent = number;
             currentNumber.classList.remove('shuffling');
             currentNumber.style.transform = 'scale(1.1)';
             currentNumber.style.boxShadow = '0 0 30px rgba(99, 102, 241, 0.8)';
             
-            // Show fullscreen number automatically
+            // Show fullscreen number automatically with slight delay
             setTimeout(() => {
                 showFullscreenNumber(number);
-            }, 500);
+            }, 400);
             
             setTimeout(() => {
                 currentNumber.style.transform = '';
@@ -466,12 +522,15 @@
         // Generate random number with shuffle effect
         generateBtn.addEventListener('click', () => {
             if (isShuffling || availableNumbers.length === 0) return;
+            playSound(clickSound, 0.3);
             startShuffle();
         });
         
         // New game
         newGameBtn.addEventListener('click', () => {
+            playSound(clickSound, 0.3);
             clearInterval(shuffleInterval);
+            shuffleSound.pause();
             calledNumbers = [];
             availableNumbers = Array.from({length: 99}, (_, i) => i + 1);
             currentNumber.textContent = "--";
